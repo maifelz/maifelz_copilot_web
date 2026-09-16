@@ -118,6 +118,20 @@ export const generateReport = async (connection_id: string, prompt: string): Pro
   return data;
 };
 
+export const exportReportExcel = async (report: AIReport) => {
+  const res = await api.post('/reports/export/excel', { report_data: report }, { responseType: 'blob' });
+  const blob = new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const sanitizedTitle = (report.report_title || 'odoo_report').replace(/[^a-zA-Z0-9_-]/g, '_');
+  a.download = `${sanitizedTitle}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+};
+
 export const getLiveQuota = async (connection_id?: string): Promise<{ success: boolean; tenant: AuthTenant }> => {
   const res = await api.get('/auth/quota', { params: connection_id ? { connection_id } : {} });
   if (res.data && res.data.tenant && typeof window !== 'undefined') {

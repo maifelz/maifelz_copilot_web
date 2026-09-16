@@ -9,7 +9,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
-import { generateReport, getPromptSuggestions, getQuickStats, getConnections, getAIStatus, getStoredAuth, type AIReport } from '@/lib/api';
+import { generateReport, exportReportExcel, getPromptSuggestions, getQuickStats, getConnections, getAIStatus, getStoredAuth, type AIReport } from '@/lib/api';
 import Header from '@/components/layout/Header';
 import KPICard from '@/components/dashboard/KPICard';
 import ReportChart from '@/components/charts/ReportChart';
@@ -319,7 +319,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-sm font-bold text-slate-900">mAifelZ AI Assistant</h3>
+                      <h3 className="text-sm font-bold text-slate-900">mAifelZ Copilot</h3>
                       <span className="px-2 py-0.5 rounded-md bg-[#5a165d]/10 text-[#5a165d] text-[10px] font-bold">
                         {currentReport.report_title}
                       </span>
@@ -331,226 +331,84 @@ export default function DashboardPage() {
                       )}
                     </div>
                     <p className="text-xs text-slate-400">
-                      Response generated with {currentReport.engine || 'Google Gemini 2.0 Flash'} from live Odoo ERP query
+                      Live Odoo ERP Verified Response
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {/* Multilingual Voice Readout / Speak Button */}
+                  <button
+                    onClick={handleSpeakReport}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border shadow-xs cursor-pointer',
+                      isSpeaking
+                        ? 'bg-rose-600 text-white border-rose-600 animate-pulse'
+                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-[#5a165d]'
+                    )}
+                    title={isSpeaking ? 'Stop speaking' : 'Listen to report'}
+                  >
+                    {isSpeaking ? (
+                      <>
+                        <VolumeX size={14} />
+                        <span>Stop</span>
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 size={14} className="text-[#5a165d]" />
+                        <span>Listen</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Excel Download Button */}
+                  {currentReport.table_records && currentReport.table_records.length > 0 && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          await exportReportExcel(currentReport);
+                          toast.success('Excel report downloaded!');
+                        } catch (e) {
+                          toast.error('Failed to export Excel');
+                        }
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors shadow-xs cursor-pointer"
+                      title="Download as Excel spreadsheet"
+                    >
+                      <Download size={14} />
+                      <span>Excel (.xlsx)</span>
+                    </button>
+                  )}
+
                   <button
                     onClick={() => setCurrentReport(null)}
-                    className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-600 hover:bg-slate-50 font-medium transition-colors"
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-600 hover:bg-slate-50 font-medium transition-colors cursor-pointer"
                   >
                     Clear
                   </button>
                 </div>
               </div>
 
-              {/* Direct Conversational Narrative (Like ChatGPT / Gemini) */}
-              <div className="p-5 rounded-2xl bg-slate-50/90 border border-slate-200 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs font-bold text-[#5a165d] uppercase tracking-wider">
-                    <Sparkles size={14} className="text-[#5a165d]" /> Executive Findings
-                  </div>
-
-                  {/* Multilingual Voice Readout / Speak Button */}
-                  <button
-                    onClick={handleSpeakReport}
-                    className={cn(
-                      'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-xs cursor-pointer',
-                      isSpeaking
-                        ? 'bg-rose-600 text-white animate-pulse shadow-rose-600/20'
-                        : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 hover:border-[#5a165d]'
-                    )}
-                    title={isSpeaking ? 'Stop speaking' : 'Listen to report (Voice Readout)'}
-                  >
-                    {isSpeaking ? (
-                      <>
-                        <VolumeX size={14} />
-                        <span>Stop Reading</span>
-                      </>
-                    ) : (
-                      <>
-                        <Volume2 size={14} className="text-[#5a165d]" />
-                        <span>Listen to Report</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+              {/* Simple, Direct Conversational Answer Window */}
+              <div className="p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-3">
                 <div className="text-slate-800 text-[15px] leading-relaxed font-normal">
                   {renderFormattedText(currentReport.direct_answer || currentReport.executive_summary)}
                 </div>
                 {currentReport.direct_answer && currentReport.executive_summary && currentReport.executive_summary.trim() !== '' && currentReport.executive_summary.trim() !== currentReport.direct_answer.trim() && (
-                  <p className="text-xs text-slate-500 pt-2 border-t border-slate-200 leading-relaxed">
+                  <p className="text-xs text-slate-500 pt-3 border-t border-slate-100 leading-relaxed">
                     {renderFormattedText(currentReport.executive_summary)}
                   </p>
                 )}
               </div>
 
-              {/* KPI Cards Strip */}
-              {currentReport.kpi_cards && currentReport.kpi_cards.length > 0 && (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  {currentReport.kpi_cards.map((kpi, i) => (
-                    <KPICard key={i} kpi={kpi} index={i} delay={i * 0.05} />
-                  ))}
-                </div>
-              )}
-
-              {/* Tabs: Visual Chart vs Detailed Records vs Insights */}
-              <div className="pt-2">
-                <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
-                  <button
-                    onClick={() => setActiveTab('chart')}
-                    className={cn(
-                      'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-                      activeTab === 'chart'
-                        ? 'bg-[#5a165d] text-white shadow-xs'
-                        : 'text-slate-600 hover:bg-slate-100'
-                    )}
-                  >
-                    <BarChart3 size={14} />
-                    Visual Chart
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('table')}
-                    className={cn(
-                      'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-                      activeTab === 'table'
-                        ? 'bg-[#5a165d] text-white shadow-xs'
-                        : 'text-slate-600 hover:bg-slate-100'
-                    )}
-                  >
-                    <FileSpreadsheet size={14} />
-                    Data Records ({currentReport.table_records?.length || 0})
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('insights')}
-                    className={cn(
-                      'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-                      activeTab === 'insights'
-                        ? 'bg-[#5a165d] text-white shadow-xs'
-                        : 'text-slate-600 hover:bg-slate-100'
-                    )}
-                  >
-                    <Lightbulb size={14} />
-                    Executive Insights
-                  </button>
-                </div>
-
-                {/* Tab Content */}
-                <div className="pt-5">
-                  {activeTab === 'chart' && currentReport.sections && currentReport.sections.length > 0 && (
-                    <div className="space-y-6">
-                      {currentReport.sections.map((sec, sIdx) => (
-                        sec.data && sec.data.length > 0 && (
-                          <div key={sIdx} className="p-5 rounded-2xl border border-slate-200/80 bg-slate-50/50 space-y-3 shadow-xs">
-                            {currentReport.sections.length > 1 && (
-                              <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
-                                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                                  <span className="w-2 h-2 rounded-full bg-[#5a165d]" />
-                                  {sec.title}
-                                </h4>
-                                {sec.summary && (
-                                  <span className="text-[11px] text-slate-500 font-medium">{sec.summary}</span>
-                                )}
-                              </div>
-                            )}
-                            <ReportChart section={sec} height={currentReport.sections.length > 1 ? 280 : 340} />
-                          </div>
-                        )
-                      ))}
-                    </div>
-                  )}
-
-                  {activeTab === 'table' && currentReport.table_records && (
-                    <ReportDataTable
-                      title={`${currentReport.report_title} Records`}
-                      columns={currentReport.table_columns}
-                      records={currentReport.table_records}
-                    />
-                  )}
-
-                  {activeTab === 'insights' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {currentReport.insights.length > 0 && (
-                        <div className="p-5 rounded-xl bg-slate-50 border border-slate-200">
-                          <h4 className="text-xs font-bold text-slate-800 mb-3 flex items-center gap-1.5 uppercase tracking-wider">
-                            <TrendingUp size={13} className="text-[#5a165d]" /> Key Analytical Insights
-                          </h4>
-                          <ul className="space-y-2">
-                            {currentReport.insights.map((ins, i) => (
-                              <li key={i} className="flex items-start gap-2 text-xs text-slate-600">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#5a165d] mt-1.5 flex-shrink-0" />
-                                {ins}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {currentReport.recommendations.length > 0 && (
-                        <div className="p-5 rounded-xl bg-slate-50 border border-slate-200">
-                          <h4 className="text-xs font-bold text-slate-800 mb-3 flex items-center gap-1.5 uppercase tracking-wider">
-                            <Zap size={13} className="text-amber-600" /> Executive Recommendations
-                          </h4>
-                          <ul className="space-y-2">
-                            {currentReport.recommendations.map((rec, i) => (
-                              <li key={i} className="flex items-start gap-2 text-xs text-slate-600">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />
-                                {rec}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* ── Interactive Chatter: Follow-up & Clarity Box ── */}
-              {(currentReport.clarification_question || (currentReport.follow_up_suggestions && currentReport.follow_up_suggestions.length > 0)) && (
-                <div className="pt-4 border-t border-slate-100 space-y-4">
-                  {currentReport.clarification_question && (
-                    <div className="flex items-start gap-3.5 p-4 rounded-2xl bg-gradient-to-r from-purple-50/80 via-white to-purple-50/40 border border-purple-200/70 shadow-xs">
-                      <div className="w-8 h-8 rounded-xl bg-[#5a165d] text-white flex items-center justify-center flex-shrink-0 mt-0.5 shadow-xs">
-                        <Sparkles size={16} />
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-bold text-[#5a165d] uppercase tracking-wider">
-                            Interactive Assistant Clarity
-                          </span>
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        </div>
-                        <p className="text-sm font-semibold text-slate-800 leading-snug">
-                          {renderFormattedText(currentReport.clarification_question)}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {currentReport.follow_up_suggestions && currentReport.follow_up_suggestions.length > 0 && (
-                    <div className="space-y-2.5">
-                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                        <MessageSquare size={13} className="text-[#5a165d]" />
-                        <span>Quick Responses & Drill-Down Options:</span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {currentReport.follow_up_suggestions.map((suggestion, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => handlePrompt(suggestion)}
-                            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-[#5a165d] text-slate-700 hover:text-white border border-slate-200 hover:border-[#5a165d] text-xs font-semibold transition-all shadow-xs hover:shadow-sm group cursor-pointer"
-                          >
-                            <span className="text-slate-400 group-hover:text-white">↳</span>
-                            <span>{suggestion}</span>
-                            <ChevronRight size={13} className="text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-transform" />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+              {/* Data Records Table (Shown cleanly when records exist) */}
+              {currentReport.table_records && currentReport.table_records.length > 0 && (
+                <div className="pt-2">
+                  <ReportDataTable
+                    title={`${currentReport.report_title} (${currentReport.table_records.length} Records)`}
+                    columns={currentReport.table_columns}
+                    records={currentReport.table_records}
+                  />
                 </div>
               )}
             </div>
