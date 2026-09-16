@@ -372,7 +372,7 @@ export default function DashboardPage() {
                 <div className="text-slate-800 text-[15px] leading-relaxed font-normal">
                   {renderFormattedText(currentReport.direct_answer || currentReport.executive_summary)}
                 </div>
-                {currentReport.direct_answer && currentReport.executive_summary && (
+                {currentReport.direct_answer && currentReport.executive_summary && currentReport.executive_summary.trim() !== '' && currentReport.executive_summary.trim() !== currentReport.direct_answer.trim() && (
                   <p className="text-xs text-slate-500 pt-2 border-t border-slate-200 leading-relaxed">
                     {renderFormattedText(currentReport.executive_summary)}
                   </p>
