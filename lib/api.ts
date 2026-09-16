@@ -60,6 +60,7 @@ export interface AIReport {
   recommendations: string[];
   clarification_question?: string;
   follow_up_suggestions?: string[];
+  language?: string;
   raw_data_available: boolean;
   error?: string;
 }

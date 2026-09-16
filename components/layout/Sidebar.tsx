@@ -51,8 +51,8 @@ export default function Sidebar() {
       <aside
         className={cn(
           'fixed left-0 top-0 h-full z-50 transition-all duration-300 ease-in-out',
-          'flex flex-col bg-white border-r border-slate-200 shadow-sm',
-          sidebarOpen ? 'w-64' : 'w-20',
+          'flex flex-col bg-white border-r border-slate-200 shadow-lg lg:shadow-sm',
+          sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0 lg:w-20',
           'lg:relative lg:z-auto'
         )}
       >
@@ -125,6 +125,11 @@ export default function Sidebar() {
               <Link
                 key={href}
                 href={href}
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                    setSidebarOpen(false);
+                  }
+                }}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150',
                   'group relative text-sm font-medium',

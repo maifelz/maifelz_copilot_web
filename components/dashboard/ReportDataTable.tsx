@@ -84,9 +84,14 @@ export default function ReportDataTable({ title = 'Detailed Records', columns = 
         </div>
       </div>
 
+      {/* Mobile Scroll Hint */}
+      <div className="sm:hidden text-[10px] text-slate-400 flex items-center justify-end gap-1">
+        <span>↔ Swipe horizontally for all columns</span>
+      </div>
+
       {/* Table Scroll Area */}
-      <div className="overflow-x-auto rounded-xl border border-slate-200">
-        <table className="w-full text-left border-collapse text-xs">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 scrollbar-thin">
+        <table className="w-full text-left border-collapse text-xs whitespace-nowrap sm:whitespace-normal">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50">
               {columns.map(col => (

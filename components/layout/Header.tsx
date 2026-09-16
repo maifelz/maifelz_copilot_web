@@ -30,32 +30,33 @@ export default function Header({
   }, []);
 
   return (
-    <header className="h-16 flex items-center justify-between px-6 border-b border-slate-200 bg-white/90 backdrop-blur-md sticky top-0 z-30 shadow-xs">
-      <div className="flex items-center gap-4">
+    <header className="h-16 flex items-center justify-between px-3 sm:px-6 border-b border-slate-200 bg-white/90 backdrop-blur-md sticky top-0 z-30 shadow-xs">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0">
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-800"
+          className="lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-800 flex-shrink-0"
         >
           <Menu size={20} />
         </button>
-        <div>
-          <h1 className="text-base font-bold text-slate-900 tracking-tight">{title}</h1>
-          {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
+        <div className="min-w-0">
+          <h1 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight truncate">{title}</h1>
+          {subtitle && <p className="text-[11px] sm:text-xs text-slate-500 truncate hidden xs:block">{subtitle}</p>}
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
         {/* AI Engine Status Badge */}
         <div
           className={cn(
-            'flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border shadow-xs',
+            'flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-semibold border shadow-xs',
             aiActive
               ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
               : 'bg-[#5a165d]/5 text-[#5a165d] border-[#5a165d]/20'
           )}
         >
           <Sparkles size={13} className={aiActive ? 'text-emerald-600' : 'text-[#5a165d]'} />
-          <span>{aiActive ? 'mAifelZ AI Active' : 'Smart ERP Intelligence'}</span>
+          <span className="hidden sm:inline">{aiActive ? 'mAifelZ AI Active' : 'Smart ERP Intelligence'}</span>
+          <span className="sm:hidden text-[11px]">{aiActive ? 'AI' : 'ERP'}</span>
           {auth?.user?.role === 'master_admin' && onOpenAIConfig && (
             <button
               onClick={onOpenAIConfig}
@@ -68,7 +69,7 @@ export default function Header({
 
         {/* Database Selector Pill */}
         {connections.length > 0 && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium">
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium">
             <div className={cn(
               'w-2 h-2 rounded-full',
               activeConn ? 'bg-emerald-500' : 'bg-slate-300'

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import {
   Plus, Sparkles, Database, ArrowRight, TrendingUp, ChevronRight, Zap,
   BarChart3, FileSpreadsheet, Lightbulb, MessageSquare, Bot, User, CheckCircle2,
-  Download, RefreshCw, Key
+  Download, RefreshCw, Key, Volume2, VolumeX
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -78,6 +78,7 @@ export default function DashboardPage() {
   const [aiStatus, setAiStatus] = useState<{ gemini_active: boolean; engine: string; provider?: string } | null>(null);
   const [quickStats, setQuickStats] = useState<Record<string, any>>({});
   const [activeTab, setActiveTab] = useState<'chart' | 'table' | 'insights'>('chart');
+  const [isSpeaking, setIsSpeaking] = useState(false);
   
   // Conversational Thread
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -87,6 +88,14 @@ export default function DashboardPage() {
   const loadAIStatus = () => {
     getAIStatus().then(setAiStatus).catch(() => {});
   };
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const auth = getStoredAuth();
@@ -109,7 +118,68 @@ export default function DashboardPage() {
     getQuickStats(activeConnectionId).then(setQuickStats).catch(() => {});
   }, [activeConnectionId]);
 
+  const handleSpeakReport = () => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      toast.error('Voice playback is not supported in this browser.');
+      return;
+    }
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    const rawText = currentReport?.direct_answer || currentReport?.executive_summary || '';
+    if (!rawText) return;
+
+    // Strip markdown bold and symbols for clean spoken voice
+    const spokenText = rawText
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/[*_#`~]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const utterance = new SpeechSynthesisUtterance(spokenText);
+
+    // Language locale mapping
+    const lang = currentReport?.language || 'en';
+    if (lang === 'ml' || /[\u0D00-\u0D7F]/.test(spokenText)) {
+      utterance.lang = 'ml-IN';
+    } else if (lang === 'hi' || /[\u0900-\u097F]/.test(spokenText)) {
+      utterance.lang = 'hi-IN';
+    } else if (lang === 'ar' || /[\u0600-\u06FF]/.test(spokenText)) {
+      utterance.lang = 'ar-SA';
+    } else {
+      utterance.lang = 'en-US';
+    }
+
+    // Try finding matching voice for language
+    try {
+      const voices = window.speechSynthesis.getVoices();
+      const matchingVoice = voices.find(v => v.lang.toLowerCase().startsWith(utterance.lang.substring(0, 2).toLowerCase()));
+      if (matchingVoice) {
+        utterance.voice = matchingVoice;
+      }
+    } catch (_) {}
+
+    utterance.rate = 0.95;
+    utterance.pitch = 1.0;
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  };
+
   const handlePrompt = async (prompt: string) => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+
     if (!activeConnectionId) {
       toast.error('Please connect an Odoo database first');
       setShowConnectModal(true);
@@ -270,8 +340,34 @@ export default function DashboardPage() {
 
               {/* Direct Conversational Narrative (Like ChatGPT / Gemini) */}
               <div className="p-5 rounded-2xl bg-slate-50/90 border border-slate-200 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-[#5a165d] uppercase tracking-wider">
-                  <Sparkles size={14} className="text-[#5a165d]" /> Executive Findings
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold text-[#5a165d] uppercase tracking-wider">
+                    <Sparkles size={14} className="text-[#5a165d]" /> Executive Findings
+                  </div>
+
+                  {/* Multilingual Voice Readout / Speak Button */}
+                  <button
+                    onClick={handleSpeakReport}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-xs cursor-pointer',
+                      isSpeaking
+                        ? 'bg-rose-600 text-white animate-pulse shadow-rose-600/20'
+                        : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 hover:border-[#5a165d]'
+                    )}
+                    title={isSpeaking ? 'Stop speaking' : 'Listen to report (Voice Readout)'}
+                  >
+                    {isSpeaking ? (
+                      <>
+                        <VolumeX size={14} />
+                        <span>Stop Reading</span>
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 size={14} className="text-[#5a165d]" />
+                        <span>Listen to Report</span>
+                      </>
+                    )}
+                  </button>
                 </div>
                 <div className="text-slate-800 text-[15px] leading-relaxed font-normal">
                   {renderFormattedText(currentReport.direct_answer || currentReport.executive_summary)}
