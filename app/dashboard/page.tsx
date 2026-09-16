@@ -9,7 +9,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
-import { generateReport, getPromptSuggestions, getQuickStats, getConnections, getAIStatus, type AIReport } from '@/lib/api';
+import { generateReport, getPromptSuggestions, getQuickStats, getConnections, getAIStatus, getStoredAuth, type AIReport } from '@/lib/api';
 import Header from '@/components/layout/Header';
 import KPICard from '@/components/dashboard/KPICard';
 import ReportChart from '@/components/charts/ReportChart';
@@ -68,7 +68,7 @@ function renderFormattedText(text: string) {
 
 export default function DashboardPage() {
   const {
-    connections, activeConnectionId,
+    connections, activeConnectionId, setActiveConnection,
     isGenerating, setGenerating, currentReport, setCurrentReport,
     addReport, setConnections
   } = useAppStore();
@@ -89,7 +89,18 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    getConnections().then(setConnections).catch(() => {});
+    const auth = getStoredAuth();
+    getConnections().then((conns) => {
+      setConnections(conns);
+      if (conns && conns.length > 0) {
+        const target = (auth?.tenant?.connection_id && conns.find(c => c.id === auth.tenant.connection_id))
+          || (activeConnectionId && conns.find(c => c.id === activeConnectionId))
+          || conns[0];
+        if (target) {
+          setActiveConnection(target.id);
+        }
+      }
+    }).catch(() => {});
     loadAIStatus();
   }, []);
 

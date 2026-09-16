@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Lock, Mail, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { loginUser, setStoredAuth } from '@/lib/api';
+import { useAppStore } from '@/lib/store';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
@@ -26,6 +27,9 @@ export default function LoginPage() {
       const res = await loginUser(email.trim(), password.trim());
       if (res.success) {
         setStoredAuth({ user: res.user, tenant: res.tenant });
+        if (res.tenant?.connection_id) {
+          useAppStore.getState().setActiveConnection(res.tenant.connection_id);
+        }
         toast.success(`Welcome back, ${res.user.name}!`);
         if (res.user.role === 'master_admin') {
           router.push('/admin');
