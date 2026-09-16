@@ -45,22 +45,26 @@ export default function Header({
       </div>
 
       <div className="flex items-center gap-3">
-        {/* AI Engine Status Button */}
-        {onOpenAIConfig && (
-          <button
-            onClick={onOpenAIConfig}
-            className={cn(
-              'flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border shadow-xs',
-              aiActive
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                : 'bg-[#5a165d]/5 text-[#5a165d] border-[#5a165d]/20 hover:bg-[#5a165d]/10'
-            )}
-          >
-            <Sparkles size={13} className={aiActive ? 'text-emerald-600' : 'text-[#5a165d]'} />
-            <span>{aiEngineLabel}</span>
-            <span className="text-[10px] text-slate-400 font-normal underline">Connect AI</span>
-          </button>
-        )}
+        {/* AI Engine Status Badge */}
+        <div
+          className={cn(
+            'flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border shadow-xs',
+            aiActive
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : 'bg-[#5a165d]/5 text-[#5a165d] border-[#5a165d]/20'
+          )}
+        >
+          <Sparkles size={13} className={aiActive ? 'text-emerald-600' : 'text-[#5a165d]'} />
+          <span>{aiActive ? 'mAifelZ AI Active' : 'Smart ERP Intelligence'}</span>
+          {auth?.user?.role === 'master_admin' && onOpenAIConfig && (
+            <button
+              onClick={onOpenAIConfig}
+              className="text-[10px] text-[#5a165d] font-bold underline ml-1 hover:text-[#451048]"
+            >
+              Config AI
+            </button>
+          )}
+        </div>
 
         {/* Database Selector Pill */}
         {connections.length > 0 && (
