@@ -439,9 +439,26 @@ export default function DashboardPage() {
 
                 {/* Tab Content */}
                 <div className="pt-5">
-                  {activeTab === 'chart' && currentReport.sections?.[0]?.data?.length > 0 && (
-                    <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/40">
-                      <ReportChart section={currentReport.sections[0]} height={340} />
+                  {activeTab === 'chart' && currentReport.sections && currentReport.sections.length > 0 && (
+                    <div className="space-y-6">
+                      {currentReport.sections.map((sec, sIdx) => (
+                        sec.data && sec.data.length > 0 && (
+                          <div key={sIdx} className="p-5 rounded-2xl border border-slate-200/80 bg-slate-50/50 space-y-3 shadow-xs">
+                            {currentReport.sections.length > 1 && (
+                              <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
+                                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                  <span className="w-2 h-2 rounded-full bg-[#5a165d]" />
+                                  {sec.title}
+                                </h4>
+                                {sec.summary && (
+                                  <span className="text-[11px] text-slate-500 font-medium">{sec.summary}</span>
+                                )}
+                              </div>
+                            )}
+                            <ReportChart section={sec} height={currentReport.sections.length > 1 ? 280 : 340} />
+                          </div>
+                        )
+                      ))}
                     </div>
                   )}
 
