@@ -61,6 +61,10 @@ export interface AIReport {
   clarification_question?: string;
   follow_up_suggestions?: string[];
   language?: string;
+  engine?: string;
+  queries_used?: number;
+  monthly_limit?: number;
+  remaining_queries?: number;
   raw_data_available: boolean;
   error?: string;
 }
@@ -101,6 +105,29 @@ export const testConnection = async (id: string) => {
 // AI Report APIs
 export const generateReport = async (connection_id: string, prompt: string): Promise<AIReport> => {
   const res = await api.post('/ai/report', { connection_id, prompt });
+  const data = res.data;
+  if (data && typeof data.queries_used === 'number' && typeof window !== 'undefined') {
+    const current = getStoredAuth();
+    if (current && current.tenant) {
+      current.tenant.queries_used = data.queries_used;
+      if (data.monthly_limit) current.tenant.monthly_limit = data.monthly_limit;
+      setStoredAuth(current);
+      window.dispatchEvent(new CustomEvent('maifelz_quota_updated', { detail: current.tenant }));
+    }
+  }
+  return data;
+};
+
+export const getLiveQuota = async (connection_id?: string): Promise<{ success: boolean; tenant: AuthTenant }> => {
+  const res = await api.get('/auth/quota', { params: connection_id ? { connection_id } : {} });
+  if (res.data && res.data.tenant && typeof window !== 'undefined') {
+    const current = getStoredAuth();
+    if (current && current.tenant) {
+      current.tenant = { ...current.tenant, ...res.data.tenant };
+      setStoredAuth(current);
+      window.dispatchEvent(new CustomEvent('maifelz_quota_updated', { detail: current.tenant }));
+    }
+  }
   return res.data;
 };
 

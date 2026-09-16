@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Menu, Database, ChevronDown, Sparkles, LogOut, User } from 'lucide-react';
+import { Menu, Database, ChevronDown, Sparkles, LogOut, User, Zap } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
-import { getStoredAuth, logoutUser, type AuthUser, type AuthTenant } from '@/lib/api';
+import { getStoredAuth, logoutUser, getLiveQuota, getAIStatus, type AuthUser, type AuthTenant } from '@/lib/api';
 
 interface HeaderProps {
   title?: string;
@@ -18,16 +18,60 @@ export default function Header({
   title = 'AI Copilot',
   subtitle,
   onOpenAIConfig,
-  aiActive = false,
-  aiEngineLabel = 'AI Engine',
+  aiActive,
+  aiEngineLabel,
 }: HeaderProps) {
   const { setSidebarOpen, sidebarOpen, connections, activeConnectionId } = useAppStore();
   const activeConn = connections.find(c => c.id === activeConnectionId);
   const [auth, setAuth] = useState<{ user: AuthUser; tenant: AuthTenant } | null>(null);
+  const [quota, setQuota] = useState<{ queries_used: number; monthly_limit: number } | null>(null);
+  const [aiStatus, setAiStatus] = useState<{ gemini_active: boolean; engine: string } | null>(null);
 
   useEffect(() => {
-    setAuth(getStoredAuth());
-  }, []);
+    const stored = getStoredAuth();
+    setAuth(stored);
+    if (stored?.tenant) {
+      setQuota({
+        queries_used: stored.tenant.queries_used || 0,
+        monthly_limit: stored.tenant.monthly_limit || 2500,
+      });
+    }
+
+    // Auto-fetch live AI status
+    getAIStatus()
+      .then(status => {
+        if (status) setAiStatus(status);
+      })
+      .catch(() => {});
+
+    // Auto-fetch live quota
+    getLiveQuota(activeConnectionId || undefined)
+      .then(res => {
+        const live = res?.tenant || (res as any);
+        if (live && typeof live.queries_used === 'number') {
+          setQuota({
+            queries_used: live.queries_used,
+            monthly_limit: live.monthly_limit || 2500,
+          });
+        }
+      })
+      .catch(() => {});
+
+    // Reactive listener for real-time query updates from PromptBar / Dashboard
+    const handleQuotaUpdated = (e: any) => {
+      if (e.detail) {
+        setQuota({
+          queries_used: e.detail.queries_used,
+          monthly_limit: e.detail.monthly_limit || 2500,
+        });
+      }
+    };
+    window.addEventListener('maifelz_quota_updated', handleQuotaUpdated);
+    return () => window.removeEventListener('maifelz_quota_updated', handleQuotaUpdated);
+  }, [activeConnectionId]);
+
+  const effectiveAiActive = aiActive !== undefined ? aiActive : Boolean(aiStatus?.gemini_active);
+  const effectiveEngineLabel = aiEngineLabel || aiStatus?.engine || 'Google Gemini 2.0 Flash';
 
   return (
     <header className="h-16 flex items-center justify-between px-3 sm:px-6 border-b border-slate-200 bg-white/90 backdrop-blur-md sticky top-0 z-30 shadow-xs">
@@ -49,14 +93,18 @@ export default function Header({
         <div
           className={cn(
             'flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-semibold border shadow-xs',
-            aiActive
+            effectiveAiActive
               ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
               : 'bg-[#5a165d]/5 text-[#5a165d] border-[#5a165d]/20'
           )}
         >
-          <Sparkles size={13} className={aiActive ? 'text-emerald-600' : 'text-[#5a165d]'} />
-          <span className="hidden sm:inline">{aiActive ? 'mAifelZ AI Active' : 'Smart ERP Intelligence'}</span>
-          <span className="sm:hidden text-[11px]">{aiActive ? 'AI' : 'ERP'}</span>
+          <Sparkles size={13} className={effectiveAiActive ? 'text-emerald-600' : 'text-[#5a165d]'} />
+          <span className="hidden sm:inline">
+            {effectiveAiActive ? `${effectiveEngineLabel} Active` : 'Smart ERP Intelligence'}
+          </span>
+          <span className="sm:hidden text-[11px]">
+            {effectiveAiActive ? 'Gemini' : 'ERP'}
+          </span>
           {auth?.user?.role === 'master_admin' && onOpenAIConfig && (
             <button
               onClick={onOpenAIConfig}
@@ -66,6 +114,19 @@ export default function Header({
             </button>
           )}
         </div>
+
+        {/* Live Quota Pill */}
+        {quota && (
+          <a
+            href="/settings"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition-colors shadow-xs"
+            title="Monthly AI Query Quota (Click to view in Settings)"
+          >
+            <Zap size={13} className="text-[#5a165d] fill-[#5a165d]/30" />
+            <span>{quota.queries_used.toLocaleString()} / {quota.monthly_limit.toLocaleString()}</span>
+            <span className="hidden sm:inline text-slate-400 font-normal text-[11px]">Queries</span>
+          </a>
+        )}
 
         {/* Database Selector Pill */}
         {connections.length > 0 && (

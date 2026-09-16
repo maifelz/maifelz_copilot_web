@@ -6,7 +6,7 @@ import {
   Building2, User, Zap, ShieldCheck, CreditCard,
   Mail, ExternalLink, LogOut, CheckCircle2, Globe, Sparkles
 } from 'lucide-react';
-import { getStoredAuth, logoutUser, type AuthUser, type AuthTenant } from '@/lib/api';
+import { getStoredAuth, logoutUser, getLiveQuota, type AuthUser, type AuthTenant } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 export default function SettingsPage() {
@@ -18,22 +18,52 @@ export default function SettingsPage() {
     const data = getStoredAuth();
     if (data) {
       setAuth(data);
-    } else {
-      // Fallback preview
-      setAuth({
-        user: { name: 'Nithin', email: 'nithin@billanongsolar.com.au', role: 'admin', status: 'active' },
-        tenant: {
-          id: 'tenant-default-001',
-          company_name: 'Billabong Solar',
-          license_key: 'MFZ-PRO-2026-BILLA-8891',
-          plan: 'professional',
-          status: 'active',
-          connection_id: '2d091f19',
-          monthly_limit: 2500,
-          queries_used: 6,
-        }
-      });
     }
+
+    // Always fetch live quota from backend
+    getLiveQuota().then(res => {
+      if (res && res.tenant) {
+        const liveTenant = res.tenant;
+        setAuth(prev => ({
+          user: prev?.user || {
+            name: 'Nithin',
+            email: 'nithin@billanongsolar.com.au',
+            role: 'admin',
+            status: 'active'
+          },
+          tenant: {
+            id: liveTenant.id,
+            company_name: liveTenant.company_name,
+            license_key: liveTenant.license_key,
+            plan: liveTenant.plan,
+            status: liveTenant.status,
+            connection_id: liveTenant.connection_id,
+            monthly_limit: liveTenant.monthly_limit,
+            queries_used: liveTenant.queries_used,
+          }
+        }));
+      }
+    }).catch(() => {});
+
+    // Reactive listener for real-time query increments
+    const handleQuotaUpdated = (e: any) => {
+      if (e.detail) {
+        setAuth(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            tenant: {
+              ...prev.tenant,
+              queries_used: e.detail.queries_used,
+              monthly_limit: e.detail.monthly_limit || prev.tenant.monthly_limit,
+            }
+          };
+        });
+      }
+    };
+
+    window.addEventListener('maifelz_quota_updated', handleQuotaUpdated);
+    return () => window.removeEventListener('maifelz_quota_updated', handleQuotaUpdated);
   }, []);
 
   const handleSavePreferences = (e: React.FormEvent) => {
@@ -41,7 +71,9 @@ export default function SettingsPage() {
     toast.success('Display preferences saved successfully!');
   };
 
-  const pct = auth ? Math.min(100, Math.round((auth.tenant.queries_used / auth.tenant.monthly_limit) * 100)) : 0;
+  const pct = auth && auth.tenant.monthly_limit > 0 
+    ? Math.min(100, Math.round((auth.tenant.queries_used / auth.tenant.monthly_limit) * 100)) 
+    : 0;
 
   return (
     <div className="min-h-screen bg-slate-50">

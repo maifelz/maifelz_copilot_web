@@ -232,7 +232,7 @@ export default function DashboardPage() {
         subtitle={activeConn ? `Connected to ${activeConn.company_name || activeConn.label} (Odoo ${activeConn.odoo_version})` : 'Enterprise ERP Intelligence'}
         onOpenAIConfig={() => setShowApiKeyModal(true)}
         aiActive={Boolean(aiStatus?.gemini_active)}
-        aiEngineLabel={aiStatus?.engine || 'Smart BI Engine'}
+        aiEngineLabel={aiStatus?.engine || (aiStatus?.gemini_active ? 'Google Gemini 2.0 Flash' : 'Smart ERP Intelligence')}
       />
 
       <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full flex-1">
@@ -318,13 +318,21 @@ export default function DashboardPage() {
                     <Sparkles size={18} />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-sm font-bold text-slate-900">mAifelZ AI Assistant</h3>
                       <span className="px-2 py-0.5 rounded-md bg-[#5a165d]/10 text-[#5a165d] text-[10px] font-bold">
                         {currentReport.report_title}
                       </span>
+                      {currentReport.engine && (
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold inline-flex items-center gap-1">
+                          <Sparkles size={10} className="text-emerald-600" />
+                          {currentReport.engine}
+                        </span>
+                      )}
                     </div>
-                    <p className="text-xs text-slate-400">Response generated from live Odoo ERP query</p>
+                    <p className="text-xs text-slate-400">
+                      Response generated with {currentReport.engine || 'Google Gemini 2.0 Flash'} from live Odoo ERP query
+                    </p>
                   </div>
                 </div>
 
