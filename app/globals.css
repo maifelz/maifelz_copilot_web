@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+/* === mAifelZ Professional Enterprise Light Theme === */
+
+:root {
+  --primary: #5a165d;       /* mAifelZ Deep Plum Purple */
+  --primary-hover: #48114a;
+  --secondary: #777f8b;     /* mAifelZ Slate Grey */
+  --background: #f8fafc;    /* Clean Porcelain Canvas */
+  --foreground: #0f172a;    /* Crisp Dark Slate */
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --border: #e2e8f0;
+  --muted: #64748b;
+  --muted-bg: #f1f5f9;
+}
+
+body {
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Enterprise Card Elevation */
+.enterprise-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.05);
+}
+
+.enterprise-card-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.enterprise-card-hover:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  transform: translateY(-1px);
+}
+
+/* mAifelZ Gradient Accents */
+.maifelz-gradient-text {
+  background: linear-gradient(135deg, #5a165d 0%, #777f8b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.maifelz-gradient-btn {
+  background: linear-gradient(135deg, #5a165d 0%, #6e1c72 100%);
+  color: #ffffff;
+  transition: all 0.2s ease;
+}
+.maifelz-gradient-btn:hover {
+  background: linear-gradient(135deg, #48114a 0%, #5a165d 100%);
+  box-shadow: 0 4px 14px 0 rgba(90, 22, 93, 0.25);
+}
+
+/* Thin Scrollbar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+.scrollbar-thin::-webkit-scrollbar { width: 6px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 6px;
+}
+
+/* Light Theme Chart Tooltip */
+.chart-tooltip-light {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1) !important;
+  color: #0f172a !important;
+}
+
+input, textarea, select {
+  color-scheme: light;
+}
+
+::selection {
+  background: rgba(90, 22, 93, 0.15);
+  color: #5a165d;
+}
