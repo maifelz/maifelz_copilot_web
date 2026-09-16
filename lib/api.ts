@@ -58,6 +58,8 @@ export interface AIReport {
   table_records?: Record<string, any>[];
   insights: string[];
   recommendations: string[];
+  clarification_question?: string;
+  follow_up_suggestions?: string[];
   raw_data_available: boolean;
   error?: string;
 }

@@ -386,6 +386,52 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
+
+              {/* ── Interactive Chatter: Follow-up & Clarity Box ── */}
+              {(currentReport.clarification_question || (currentReport.follow_up_suggestions && currentReport.follow_up_suggestions.length > 0)) && (
+                <div className="pt-4 border-t border-slate-100 space-y-4">
+                  {currentReport.clarification_question && (
+                    <div className="flex items-start gap-3.5 p-4 rounded-2xl bg-gradient-to-r from-purple-50/80 via-white to-purple-50/40 border border-purple-200/70 shadow-xs">
+                      <div className="w-8 h-8 rounded-xl bg-[#5a165d] text-white flex items-center justify-center flex-shrink-0 mt-0.5 shadow-xs">
+                        <Sparkles size={16} />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold text-[#5a165d] uppercase tracking-wider">
+                            Interactive Assistant Clarity
+                          </span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        </div>
+                        <p className="text-sm font-semibold text-slate-800 leading-snug">
+                          {renderFormattedText(currentReport.clarification_question)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {currentReport.follow_up_suggestions && currentReport.follow_up_suggestions.length > 0 && (
+                    <div className="space-y-2.5">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <MessageSquare size={13} className="text-[#5a165d]" />
+                        <span>Quick Responses & Drill-Down Options:</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {currentReport.follow_up_suggestions.map((suggestion, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handlePrompt(suggestion)}
+                            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-[#5a165d] text-slate-700 hover:text-white border border-slate-200 hover:border-[#5a165d] text-xs font-semibold transition-all shadow-xs hover:shadow-sm group cursor-pointer"
+                          >
+                            <span className="text-slate-400 group-hover:text-white">↳</span>
+                            <span>{suggestion}</span>
+                            <ChevronRight size={13} className="text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-transform" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </motion.div>
         )}
