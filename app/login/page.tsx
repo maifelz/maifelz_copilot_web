@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Lock, Mail, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { loginUser, setStoredAuth } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
@@ -43,16 +43,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleFillDemo = () => {
-    setEmail('nithin@billanongsolar.com.au');
-    setPassword('Solar2026!');
-  };
-
-  const handleFillAdmin = () => {
-    setEmail('admin@maifelz.com');
-    setPassword('MaifelzAdmin2026!');
   };
 
 
@@ -129,25 +119,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Quick Access Buttons */}
-          <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-center gap-2">
-            <button
-              type="button"
-              onClick={handleFillDemo}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 hover:text-[#5a165d] hover:border-[#5a165d]/30 text-[11px] font-semibold transition-all"
-            >
-              <Sparkles size={13} className="text-[#5a165d]" />
-              <span>Billabong Solar Seat</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleFillAdmin}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#5a165d]/5 border border-[#5a165d]/25 text-[#5a165d] hover:bg-[#5a165d]/10 text-[11px] font-bold transition-all"
-            >
-              <ShieldCheck size={13} className="text-[#5a165d]" />
-              <span>mAifelZ Master Admin</span>
-            </button>
-          </div>
+
 
 
           <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 text-center">
