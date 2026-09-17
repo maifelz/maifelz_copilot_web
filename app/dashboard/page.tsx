@@ -102,9 +102,16 @@ export default function DashboardPage() {
     getConnections().then((conns) => {
       setConnections(conns);
       if (conns && conns.length > 0) {
-        const target = (auth?.tenant?.connection_id && conns.find(c => c.id === auth.tenant.connection_id))
-          || (activeConnectionId && conns.find(c => c.id === activeConnectionId))
-          || conns[0];
+        const isMaster = auth?.user?.role === 'master_admin';
+        let target = null;
+        if (isMaster) {
+          target = (activeConnectionId && conns.find(c => c.id === activeConnectionId))
+            || (auth?.tenant?.connection_id && conns.find(c => c.id === auth.tenant.connection_id))
+            || conns[0];
+        } else {
+          target = (auth?.tenant?.connection_id && conns.find(c => c.id === auth.tenant.connection_id))
+            || conns[0];
+        }
         if (target) {
           setActiveConnection(target.id);
         }

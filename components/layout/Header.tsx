@@ -21,7 +21,7 @@ export default function Header({
   aiActive,
   aiEngineLabel,
 }: HeaderProps) {
-  const { setSidebarOpen, sidebarOpen, connections, activeConnectionId } = useAppStore();
+  const { setSidebarOpen, sidebarOpen, connections, activeConnectionId, setActiveConnection } = useAppStore();
   const activeConn = connections.find(c => c.id === activeConnectionId);
   const [auth, setAuth] = useState<{ user: AuthUser; tenant: AuthTenant } | null>(null);
   const [quota, setQuota] = useState<{ queries_used: number; monthly_limit: number } | null>(null);
@@ -130,16 +130,38 @@ export default function Header({
 
         {/* Database Selector Pill */}
         {connections.length > 0 && (
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium">
-            <div className={cn(
-              'w-2 h-2 rounded-full',
-              activeConn ? 'bg-emerald-500' : 'bg-slate-300'
-            )} />
-            <Database size={13} className="text-slate-400" />
-            <span className="max-w-[140px] truncate">
-              {auth?.tenant?.company_name || (activeConn ? (activeConn.company_name || activeConn.label) : 'Select DB')}
-            </span>
-          </div>
+          auth?.user?.role === 'master_admin' ? (
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-50/60 border border-purple-200 text-purple-900 text-xs font-medium">
+              <div className={cn(
+                'w-2 h-2 rounded-full shrink-0',
+                activeConn ? 'bg-emerald-500' : 'bg-slate-300'
+              )} />
+              <Database size={13} className="text-[#5a165d] shrink-0" />
+              <select
+                value={activeConnectionId || ''}
+                onChange={(e) => setActiveConnection(e.target.value)}
+                className="bg-transparent border-none text-xs font-bold text-slate-800 focus:outline-none cursor-pointer pr-1 max-w-[170px] truncate"
+                title="Switch Active Database (Master Admin)"
+              >
+                {connections.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.company_name || c.label || c.database}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium">
+              <div className={cn(
+                'w-2 h-2 rounded-full shrink-0',
+                activeConn ? 'bg-emerald-500' : 'bg-slate-300'
+              )} />
+              <Database size={13} className="text-slate-400 shrink-0" />
+              <span className="max-w-[160px] truncate font-semibold">
+                {activeConn ? (activeConn.company_name || activeConn.label) : (auth?.tenant?.company_name || 'Select DB')}
+              </span>
+            </div>
+          )
         )}
 
         {/* User Pill / Login Link */}

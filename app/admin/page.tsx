@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import {
   Users, Key, Shield, ShieldAlert, ShieldCheck, Plus, Copy, Check,
   RefreshCw, Power, DollarSign, Activity, AlertTriangle, ExternalLink,
-  ChevronRight, ArrowUpRight, UserPlus, Trash2, Zap
+  ChevronRight, ArrowUpRight, UserPlus, Trash2, Zap, Database, Link2,
+  Globe, Server, CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -12,12 +13,14 @@ import Header from '@/components/layout/Header';
 import {
   getAdminSummary, createTenant, updateTenantStatus, resetTenantUsage,
   addTenantUser, deleteTenantUser, topupTenantCredits,
-  type Tenant, type AdminSummary, type TenantUser
+  getConnections, assignTenantConnection, connectAndAssignOdoo,
+  type Tenant, type AdminSummary, type TenantUser, type OdooConnection
 } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 export default function MasterAdminPage() {
   const [summary, setSummary] = useState<AdminSummary | null>(null);
+  const [connections, setConnections] = useState<OdooConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -30,17 +33,30 @@ export default function MasterAdminPage() {
   const [newSeatPassword, setNewSeatPassword] = useState('');
   const [seatActionLoading, setSeatActionLoading] = useState(false);
 
-
   // Top-Up Modal State
   const [selectedTenantForTopup, setSelectedTenantForTopup] = useState<Tenant | null>(null);
   const [topupAmount, setTopupAmount] = useState(500);
   const [topupLoading, setTopupLoading] = useState(false);
+
+  // Database Assignment Modal State
+  const [selectedTenantForDB, setSelectedTenantForDB] = useState<Tenant | null>(null);
+  const [dbModalTab, setDbModalTab] = useState<'select' | 'new'>('select');
+  const [selectedConnId, setSelectedConnId] = useState('');
+  const [newDbForm, setNewDbForm] = useState({
+    url: '',
+    database: '',
+    username: '',
+    password: '',
+    label: '',
+  });
+  const [dbLoading, setDbLoading] = useState(false);
 
   // New Tenant Form
   const [form, setForm] = useState({
     company_name: '',
     contact_email: '',
     plan: 'professional',
+    connection_id: '',
     custom_limit: 2500,
     notes: '',
   });
@@ -49,8 +65,12 @@ export default function MasterAdminPage() {
 
   const loadData = async () => {
     try {
-      const data = await getAdminSummary();
+      const [data, conns] = await Promise.all([
+        getAdminSummary(),
+        getConnections().catch(() => []),
+      ]);
       setSummary(data);
+      setConnections(conns || []);
     } catch {
       toast.error('Failed to load admin summary');
     } finally {
@@ -106,6 +126,7 @@ export default function MasterAdminPage() {
         company_name: form.company_name,
         contact_email: form.contact_email,
         plan: form.plan,
+        connection_id: form.connection_id || undefined,
         custom_limit: Number(form.custom_limit) || 2500,
         notes: form.notes,
       });
@@ -117,6 +138,7 @@ export default function MasterAdminPage() {
           company_name: '',
           contact_email: '',
           plan: 'professional',
+          connection_id: '',
           custom_limit: 2500,
           notes: '',
         });
@@ -126,6 +148,63 @@ export default function MasterAdminPage() {
       toast.error('Failed to provision client');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleOpenDbModal = (tenant: Tenant) => {
+    setSelectedTenantForDB(tenant);
+    setSelectedConnId(tenant.connection_id || (connections[0]?.id || ''));
+    setDbModalTab('select');
+    setNewDbForm({
+      url: '',
+      database: '',
+      username: '',
+      password: '',
+      label: tenant.company_name,
+    });
+  };
+
+  const handleAssignExistingDb = async () => {
+    if (!selectedTenantForDB) return;
+    setDbLoading(true);
+    try {
+      const res = await assignTenantConnection(selectedTenantForDB.id, selectedConnId);
+      if (res.success) {
+        toast.success(res.message || `Database assigned to ${selectedTenantForDB.company_name}`);
+        setSelectedTenantForDB(null);
+        loadData();
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Failed to assign database');
+    } finally {
+      setDbLoading(false);
+    }
+  };
+
+  const handleConnectNewDb = async () => {
+    if (!selectedTenantForDB) return;
+    if (!newDbForm.url.trim() || !newDbForm.database.trim() || !newDbForm.username.trim() || !newDbForm.password.trim()) {
+      toast.error('Please fill in all Odoo connection fields');
+      return;
+    }
+    setDbLoading(true);
+    try {
+      const res = await connectAndAssignOdoo(selectedTenantForDB.id, {
+        url: newDbForm.url.trim(),
+        database: newDbForm.database.trim(),
+        username: newDbForm.username.trim(),
+        password: newDbForm.password.trim(),
+        label: newDbForm.label.trim() || selectedTenantForDB.company_name,
+      });
+      if (res.success) {
+        toast.success(res.message || 'Odoo database connected & assigned!');
+        setSelectedTenantForDB(null);
+        loadData();
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Failed to connect to Odoo');
+    } finally {
+      setDbLoading(false);
     }
   };
 
@@ -293,6 +372,7 @@ export default function MasterAdminPage() {
                   <th className="py-3.5 px-6">Company / Contact</th>
                   <th className="py-3.5 px-4">License Key</th>
                   <th className="py-3.5 px-4">Plan</th>
+                  <th className="py-3.5 px-4">Connected Odoo DB</th>
                   <th className="py-3.5 px-4">Logins / Seats ($25/seat)</th>
                   <th className="py-3.5 px-6">Monthly AI Usage</th>
                   <th className="py-3.5 px-4">Status (Kill Switch)</th>
@@ -338,6 +418,44 @@ export default function MasterAdminPage() {
                         )}>
                           {t.plan}
                         </span>
+                      </td>
+
+                      {/* Connected Odoo Database */}
+                      <td className="py-4 px-4">
+                        {t.connection_id ? (
+                          (() => {
+                            const linked = connections.find(c => c.id === t.connection_id);
+                            return (
+                              <div className="space-y-1">
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold max-w-[170px] truncate" title={linked ? `${linked.company_name || linked.label} (${linked.url})` : t.connection_id}>
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                  <Database size={12} className="text-emerald-600 shrink-0" />
+                                  <span className="truncate">{linked ? (linked.company_name || linked.label) : 'Linked DB'}</span>
+                                </div>
+                                <div>
+                                  <button
+                                    onClick={() => handleOpenDbModal(t)}
+                                    className="text-[10px] text-[#5a165d] hover:underline font-bold"
+                                  >
+                                    Change DB
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })()
+                        ) : (
+                          <div>
+                            <button
+                              onClick={() => handleOpenDbModal(t)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-[11px] font-bold transition-all shadow-2xs"
+                              title="Assign or connect an Odoo database for this client"
+                            >
+                              <Database size={11} className="text-amber-600" />
+                              <span>Assign DB</span>
+                            </button>
+                            <div className="text-[10px] text-slate-400 mt-0.5">Not linked</div>
+                          </div>
+                        )}
                       </td>
 
                       {/* Seats / User Logins */}
@@ -505,6 +623,25 @@ export default function MasterAdminPage() {
                     onChange={e => setForm({ ...form, custom_limit: Number(e.target.value) })}
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#5a165d]"
                   />
+                </div>
+
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Assign Odoo Database (Optional)</label>
+                  <select
+                    value={form.connection_id}
+                    onChange={e => setForm({ ...form, connection_id: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#5a165d]"
+                  >
+                    <option value="">None (Connect Later / via License Key)</option>
+                    {connections.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.company_name || c.label} ({c.url || c.database})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Client logins will automatically query this database upon authentication.
+                  </p>
                 </div>
 
                 <div>
@@ -731,6 +868,219 @@ export default function MasterAdminPage() {
                 >
                   <Zap size={14} /> Add {topupAmount} Queries Now
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Assign / Connect Odoo Database Modal ── */}
+      <AnimatePresence>
+        {selectedTenantForDB && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="w-full max-w-lg bg-white border border-slate-200 rounded-3xl shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-[#5a165d]/10 text-[#5a165d]">
+                    <Database size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">
+                      Odoo Database Connection
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Client: <strong>{selectedTenantForDB.company_name}</strong>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedTenantForDB(null)}
+                  className="text-slate-400 hover:text-slate-700 p-1"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Status / Current link */}
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Current Status:</span>
+                  {selectedTenantForDB.connection_id ? (
+                    <span className="inline-flex items-center gap-1 font-bold text-emerald-700">
+                      <CheckCircle2 size={13} className="text-emerald-600" />
+                      Linked to {connections.find(c => c.id === selectedTenantForDB.connection_id)?.company_name || 'Odoo Database'}
+                    </span>
+                  ) : (
+                    <span className="font-semibold text-amber-700">No database linked</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Tabs: Select Existing vs Connect New */}
+              <div className="flex rounded-xl bg-slate-100 p-1 text-xs font-semibold">
+                <button
+                  onClick={() => setDbModalTab('select')}
+                  className={cn(
+                    'flex-1 py-1.5 rounded-lg transition-all',
+                    dbModalTab === 'select' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-900'
+                  )}
+                >
+                  Select Existing Database ({connections.length})
+                </button>
+                <button
+                  onClick={() => setDbModalTab('new')}
+                  className={cn(
+                    'flex-1 py-1.5 rounded-lg transition-all',
+                    dbModalTab === 'new' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-900'
+                  )}
+                >
+                  Connect New Odoo
+                </button>
+              </div>
+
+              {dbModalTab === 'select' ? (
+                <div className="space-y-3 text-xs">
+                  {connections.length > 0 ? (
+                    <div className="space-y-2 max-h-56 overflow-y-auto">
+                      {connections.map(conn => {
+                        const isSelected = selectedConnId === conn.id;
+                        const isCurrent = selectedTenantForDB.connection_id === conn.id;
+                        return (
+                          <div
+                            key={conn.id}
+                            onClick={() => setSelectedConnId(conn.id)}
+                            className={cn(
+                              'p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between',
+                              isSelected
+                                ? 'border-[#5a165d] bg-[#5a165d]/5 ring-1 ring-[#5a165d]'
+                                : 'border-slate-200 hover:border-slate-300 bg-white'
+                            )}
+                          >
+                            <div className="space-y-0.5">
+                              <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                                <Database size={13} className="text-[#5a165d]" />
+                                {conn.company_name || conn.label}
+                                {isCurrent && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
+                                    Current
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[11px] text-slate-500">{conn.url}</div>
+                              <div className="text-[10px] text-slate-400 font-mono">DB: {conn.database} · User: {conn.username}</div>
+                            </div>
+                            <div className={cn(
+                              'w-4 h-4 rounded-full border flex items-center justify-center shrink-0',
+                              isSelected ? 'border-[#5a165d] bg-[#5a165d]' : 'border-slate-300'
+                            )}>
+                              {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-slate-400">
+                      No saved Odoo connections found. Switch to "Connect New Odoo" tab to add one.
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleAssignExistingDb}
+                    disabled={dbLoading || !selectedConnId}
+                    className="w-full py-2.5 rounded-xl bg-[#5a165d] text-white font-bold text-xs hover:bg-[#48114a] transition-all flex items-center justify-center gap-1.5 shadow-xs disabled:opacity-50"
+                  >
+                    <Link2 size={14} /> Assign Selected Database to Client
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Odoo Instance URL</label>
+                    <input
+                      type="text"
+                      placeholder="https://mycompany.odoo.com"
+                      value={newDbForm.url}
+                      onChange={e => setNewDbForm({ ...newDbForm, url: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#5a165d]"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">Database Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. mycompany-production"
+                        value={newDbForm.database}
+                        onChange={e => setNewDbForm({ ...newDbForm, database: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#5a165d]"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">Company / Label</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Brothers Trading"
+                        value={newDbForm.label}
+                        onChange={e => setNewDbForm({ ...newDbForm, label: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#5a165d]"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">Odoo Login / Email</label>
+                      <input
+                        type="text"
+                        placeholder="admin@mycompany.com"
+                        value={newDbForm.username}
+                        onChange={e => setNewDbForm({ ...newDbForm, username: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#5a165d]"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">Password / API Key</label>
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={newDbForm.password}
+                        onChange={e => setNewDbForm({ ...newDbForm, password: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#5a165d]"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleConnectNewDb}
+                    disabled={dbLoading}
+                    className="w-full py-2.5 mt-2 rounded-xl bg-[#5a165d] text-white font-bold text-xs hover:bg-[#48114a] transition-all flex items-center justify-center gap-1.5 shadow-xs disabled:opacity-50"
+                  >
+                    <Server size={14} /> Test & Connect Odoo Database
+                  </button>
+                </div>
+              )}
+
+              {/* Odoo Module & License Key info */}
+              <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-500 space-y-1">
+                <div className="font-semibold text-slate-700">Client Self-Connection via License Key:</div>
+                <div className="flex items-center justify-between p-2 rounded-xl bg-slate-100 font-mono text-[11px] text-slate-800">
+                  <span>{selectedTenantForDB.license_key}</span>
+                  <button
+                    onClick={() => handleCopy(selectedTenantForDB.license_key)}
+                    className="p-1 hover:text-[#5a165d]"
+                    title="Copy License Key"
+                  >
+                    <Copy size={12} />
+                  </button>
+                </div>
+                <div className="text-[10px] text-slate-400">
+                  Client can also install the mAifelZ Odoo Module in their instance and enter this key.
+                </div>
               </div>
             </motion.div>
           </div>

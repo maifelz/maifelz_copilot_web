@@ -211,10 +211,33 @@ export const createTenant = async (data: {
   company_name: string;
   contact_email: string;
   plan: string;
+  connection_id?: string;
   custom_limit?: number;
   notes?: string;
 }): Promise<{ success: boolean; tenant: Tenant }> => {
   const res = await api.post('/admin/tenants', data);
+  return res.data;
+};
+
+export const assignTenantConnection = async (
+  tenant_id: string,
+  connection_id: string
+): Promise<{ success: boolean; message: string; tenant: Tenant }> => {
+  const res = await api.post(`/admin/tenants/${tenant_id}/connection`, { connection_id });
+  return res.data;
+};
+
+export const connectAndAssignOdoo = async (
+  tenant_id: string,
+  data: {
+    url: string;
+    database: string;
+    username: string;
+    password: string;
+    label?: string;
+  }
+): Promise<{ success: boolean; message: string; connection_id: string; tenant: Tenant }> => {
+  const res = await api.post(`/admin/tenants/${tenant_id}/connect-odoo`, data);
   return res.data;
 };
 

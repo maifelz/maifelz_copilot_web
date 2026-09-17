@@ -27,7 +27,7 @@ export default function LoginPage() {
       const res = await loginUser(email.trim(), password.trim());
       if (res.success) {
         setStoredAuth({ user: res.user, tenant: res.tenant });
-        if (res.tenant?.connection_id) {
+        if (res.user.role !== 'master_admin' && res.tenant?.connection_id) {
           useAppStore.getState().setActiveConnection(res.tenant.connection_id);
         }
         toast.success(`Welcome back, ${res.user.name}!`);
