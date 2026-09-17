@@ -207,7 +207,11 @@ export default function DashboardPage() {
 
     setGenerating(true);
     try {
-      const report = await generateReport(activeConnectionId, prompt);
+      const historyForApi = messages.slice(-6).map(m => ({
+        role: m.role,
+        content: m.content || '',
+      }));
+      const report = await generateReport(activeConnectionId, prompt, historyForApi);
       setCurrentReport(report);
       addReport(report);
 

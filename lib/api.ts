@@ -103,8 +103,12 @@ export const testConnection = async (id: string) => {
 };
 
 // AI Report APIs
-export const generateReport = async (connection_id: string, prompt: string): Promise<AIReport> => {
-  const res = await api.post('/ai/report', { connection_id, prompt });
+export const generateReport = async (
+  connection_id: string,
+  prompt: string,
+  history?: { role: string; content: string }[]
+): Promise<AIReport> => {
+  const res = await api.post('/ai/report', { connection_id, prompt, history });
   const data = res.data;
   if (data && typeof data.queries_used === 'number' && typeof window !== 'undefined') {
     const current = getStoredAuth();

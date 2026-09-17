@@ -5,7 +5,7 @@ import {
   Users, Key, Shield, ShieldAlert, ShieldCheck, Plus, Copy, Check,
   RefreshCw, Power, DollarSign, Activity, AlertTriangle, ExternalLink,
   ChevronRight, ArrowUpRight, UserPlus, Trash2, Zap, Database, Link2,
-  Globe, Server, CheckCircle2
+  Globe, Server, CheckCircle2, Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -342,6 +342,31 @@ export default function MasterAdminPage() {
             <p className="text-sm font-bold text-slate-900 mt-2">100% Enforced</p>
             <p className="text-[11px] text-slate-400 mt-1">Zero client control · Kill-switch active</p>
           </div>
+        </div>
+
+        {/* ── Official Odoo Addon Banner ── */}
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-[#5a165d]/10 via-purple-50/50 to-slate-50 border border-purple-200/70 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-2xs">
+          <div className="flex items-center gap-3.5">
+            <div className="p-3 rounded-2xl bg-[#5a165d] text-white shadow-xs shrink-0">
+              <Download size={22} />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                mAifelZ AI Copilot for Odoo (v19.0 Addon)
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#5a165d] text-white font-bold">Official Module</span>
+              </div>
+              <p className="text-xs text-slate-600 mt-0.5">
+                Native Model Context Protocol (MCP) server for Odoo 19. Install in client instances to enable automatic license handshake & zero-latency queries.
+              </p>
+            </div>
+          </div>
+          <a
+            href="/maifelz_ai_copilot_v19.zip"
+            download="maifelz_ai_copilot_v19.zip"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#5a165d] hover:bg-[#451048] text-white text-xs font-bold transition-all shadow-xs shrink-0"
+          >
+            <Download size={14} /> Download Odoo Addon (.zip)
+          </a>
         </div>
 
         {/* ── Client List Table ── */}
